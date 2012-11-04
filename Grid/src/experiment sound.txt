@@ -1,0 +1,130 @@
+package 
+{
+	import flash.display.Sprite;
+	import flash.events.Event;
+	import flash.display.*;
+	import flash.events.*;
+	import flash.geom.ColorTransform;
+	import flash.net.URLRequest;
+	import flash.net.navigateToURL;
+	import flash.system.*;
+	import flash.text.*;
+	import flash.utils.*; 
+	import flash.media.*;
+	import flash.events.Event;
+	import flash.events.EventDispatcher;
+	import flash.events.SampleDataEvent;
+	import flash.utils.ByteArray;
+
+	/**
+	 * ...
+	 * @author sd
+	 */
+	[Frame(factoryClass="Preloader")]
+	public class Main extends Sprite 
+	{
+		public var genericShape:Shape;
+		public var testButton:Sprite = new Sprite();
+		public var genericShape2:Shape;
+		public var testButton2:Sprite = new Sprite();
+		public var mySound:Sound = new Sound();
+		
+		private var frequency:Number = 340;
+
+		public function Main():void 
+		{
+			if (stage) init();
+			else addEventListener(Event.ADDED_TO_STAGE, init);
+		}
+
+		private function init(e:Event = null):void 
+		{
+			removeEventListener(Event.ADDED_TO_STAGE, init);
+			// entry point
+			
+			genericShape = new Shape();
+			genericShape.graphics.beginFill(Math.random() * 0xFFFFFF);
+			genericShape.graphics.drawRect(0, 0, 120, 50);
+			genericShape.visible = true;
+			
+			testButton.addEventListener(MouseEvent.MOUSE_DOWN, dragModeOn);
+			testButton.addEventListener(MouseEvent.MOUSE_UP, dragModeOff);
+			
+			testButton.addChild(genericShape);
+			
+			testButton.visible = true;
+			this.addChild(testButton);
+			
+			genericShape2 = new Shape();
+			genericShape2.graphics.beginFill(Math.random() * 0xFFFFFF);
+			genericShape2.graphics.drawRect(0, 0, 120, 50);
+			genericShape2.visible = true;
+			
+			testButton2.addEventListener(MouseEvent.MOUSE_DOWN, dragModeOn);
+			testButton2.addEventListener(MouseEvent.MOUSE_UP, dragModeOff);
+			
+			testButton2.addChild(genericShape2);
+			
+			testButton2.visible = true;
+			this.addChild(testButton2);
+			
+			mySound.addEventListener(SampleDataEvent.SAMPLE_DATA,sineWaveGenerator);
+			
+			
+			addEventListener(Event.ENTER_FRAME, onEnterFrame);
+			mySound.play();
+			
+		}
+		
+		private function onEnterFrame(event:Event):void
+		{
+			
+			
+		}
+		
+		
+		private function sineWaveGenerator(event:SampleDataEvent):void 
+		{
+			
+			for ( var c:int = 0; c < 8192; c++ ) 
+			{
+				frequency =  Math.abs(testButton.x - testButton2.x) ;
+				event.data.writeFloat(Math.sin( Number(c + event.position) * (frequency * 2 * Math.PI) / 44100) * 0.25 );
+				event.data.writeFloat(Math.sin( Number(c + event.position) * (frequency * 2 * Math.PI) / 44100) * 0.25 );
+				//trace(Math.sin( Number(c + event.position) * (frequency * 2 * Math.PI) / 44100) * 0.25);
+			//	event.data.writeFloat(Math.sin((Number(c+event.position)/Math.PI/4))*0.1);
+			//	event.data.writeFloat(Math.sin((Number(c + event.position) / Math.PI / 2)) * 0.1);
+				
+				/*
+				 * 
+				event.data.writeFloat(Math.sin( Number(c+event.position) * (frequency * 2 * Math.PI) / 44100) * 0.25 ); (note version)
+				event.data.writeFloat(Math.sin((Number(c+event.position)/Math.PI/4))*0.1);(adobe version)
+				event.data.writeFloat(Math.sin((Number(c+event.position)/Math.PI/2))*0.1);
+
+				 **/
+			}
+			trace("SMOMFE");
+		}
+		
+		private function dragModeOn(event:MouseEvent):void
+		{			
+			event.target.startDrag(false);
+			event.target.alpha = 0.5;
+			//selectedBrickIndex = brickButtons.indexOf(event.target);
+			//testButton.alpha = 0.5;
+			//event.target.
+		}
+		
+		private function dragModeOff(event:MouseEvent):void
+		{			
+			event.target.stopDrag();
+			event.target.alpha = 1.5;
+			//testButton.alpha = 1.5;
+				
+		}
+
+
+
+	}
+
+}

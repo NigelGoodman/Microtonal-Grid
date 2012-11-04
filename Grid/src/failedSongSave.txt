@@ -1,0 +1,51 @@
+private function saveSongClicked(e:MouseEvent):void
+		{
+			// fucked. try again later. 
+			/*
+			//trace("HERE CONES MA");
+			var int1:int = new int(0);
+			var genericString:String  = new String("");
+			for (var x3:int = 0; x3 < 16 ; x3++)
+			{
+				
+				for (var y3:int = 0; y3 < 16 ; y3++)
+				{
+					genericString = genericString.concat(int(buttons[x3][y3].returnState()));
+					if ( buttons[x3][y3].returnState() == true)
+					{
+						//int1 += (2 ^ y3); 
+						//trace(y3);
+						
+						
+					}
+					
+				}
+				trace(genericString);
+				for (var z3:int = 0; z3 < 16; z3++)
+				{
+					if (genericString.charAt(z3) == "1" )
+					{
+						int1 += (Math.pow(2,z3)); 
+					}
+				}
+				
+				genericString = int1.toString(36);
+				//trace("int1 is2 : ", int1);
+				trace("genericString : " ,genericString);
+				int1 = 0;
+				int1 = parseInt(genericString, 36);
+				trace("int1 is2 : ", int1);
+				genericString = int1.toString(2);
+				trace(genericString);
+				genericString = "";
+				
+				
+				/// now to reverse. 
+				
+				
+				
+				
+				
+			}*/
+			
+		}

@@ -1,0 +1,36 @@
+<vase>
+  <note>0</note>
+  <note>2</note>
+  <note>4</note>
+  <note>7</note>
+  <note>9</note>
+  <note>12</note>
+  <note>14</note>
+  <note>16</note>
+  <note>19</note>
+  <note>21</note>
+  <note>24</note>
+  <note>26</note>
+  <note>28</note>
+  <note>31</note>
+  <note>33</note>
+  <note>36</note>
+  <octave>2</octave>
+  <subdivisions>12</subdivisions>
+  <chord>1</chord>
+  <chord>2</chord>
+  <chord>4</chord>
+  <chord>8</chord>
+  <chord>g</chord>
+  <chord>w</chord>
+  <chord>1s</chord>
+  <chord>3k</chord>
+  <chord>74</chord>
+  <chord>e8</chord>
+  <chord>sg</chord>
+  <chord>1kw</chord>
+  <chord>35s</chord>
+  <chord>6bk</chord>
+  <chord>cn4</chord>
+  <chord>pa8</chord>
+</vase>

@@ -1,0 +1,205 @@
+package 
+{
+	import flash.display.Sprite;
+	import flash.events.Event;
+	import flash.display.*;
+	import flash.events.*;
+	import flash.geom.ColorTransform;
+	import flash.net.URLRequest;
+	import flash.net.navigateToURL;
+	import flash.system.*;
+	import flash.text.*;
+	import flash.utils.*; 
+	import flash.media.*;
+	import flash.events.Event;
+	import flash.events.EventDispatcher;
+	import flash.events.SampleDataEvent;
+	import flash.utils.ByteArray;
+
+	/**
+	 * ...
+	 * @author sd
+	 */
+	[Frame(factoryClass="Preloader")]
+	public class Main extends Sprite 
+	{
+		public var genericShape:Shape;
+		public var testButton:Sprite = new Sprite();
+		public var genericShape2:Shape;
+		public var testButton2:Sprite = new Sprite();
+		
+		public var genericShape3:Shape;
+		public var testButton3:Sprite = new Sprite();
+		public var genericShape4:Shape;
+		public var testButton4:Sprite = new Sprite();
+		
+		public var mySound:Sound = new Sound();
+		
+		private var frequency:Number = 340;
+		private var timbre:Number = 0.0;
+		private var soundLength:int = 11025;
+
+		public function Main():void 
+		{
+			if (stage) init();
+			else addEventListener(Event.ADDED_TO_STAGE, init);
+		}
+
+		private function init(e:Event = null):void 
+		{
+			removeEventListener(Event.ADDED_TO_STAGE, init);
+			// entry point
+			
+			genericShape = new Shape();
+			genericShape.graphics.beginFill(Math.random() * 0xFFFFFF);
+			genericShape.graphics.drawRect(0, 0, 120, 50);
+			genericShape.visible = true;
+			
+			testButton.addEventListener(MouseEvent.MOUSE_DOWN, dragModeOn);
+			testButton.addEventListener(MouseEvent.MOUSE_UP, dragModeOff);
+			
+			testButton.addChild(genericShape);
+			
+			testButton.visible = true;
+			this.addChild(testButton);
+			
+			genericShape2 = new Shape();
+			genericShape2.graphics.beginFill(Math.random() * 0xFFFFFF);
+			genericShape2.graphics.drawRect(200, 0, 120, 50);
+			genericShape2.visible = true;
+			
+			testButton2.addEventListener(MouseEvent.MOUSE_DOWN, dragModeOn);
+			testButton2.addEventListener(MouseEvent.MOUSE_UP, dragModeOff);
+			
+			testButton2.addChild(genericShape2);
+			
+			testButton2.visible = true;
+			this.addChild(testButton2);
+			
+			genericShape3 = new Shape();
+			genericShape3.graphics.beginFill(Math.random() * 0xFFFFFF);
+			genericShape3.graphics.drawRect(0, 0, 120, 50);
+			genericShape3.visible = true;
+			
+			testButton3.addEventListener(MouseEvent.MOUSE_DOWN, dragModeOn);
+			testButton3.addEventListener(MouseEvent.MOUSE_UP, dragModeOff);
+			
+			testButton3.addChild(genericShape3);
+			
+			testButton3.visible = true;
+			this.addChild(testButton3);
+			
+			genericShape4 = new Shape();
+			genericShape4.graphics.beginFill(Math.random() * 0xFFFFFF);
+			genericShape4.graphics.drawRect(200, 0, 120, 50);
+			genericShape4.visible = true;
+			
+			testButton4.addEventListener(MouseEvent.MOUSE_DOWN, dragModeOn);
+			testButton4.addEventListener(MouseEvent.MOUSE_UP, dragModeOff);
+			
+			testButton4.addChild(genericShape4);
+			
+			testButton4.visible = true;
+			this.addChild(testButton4);
+			
+			mySound.addEventListener(SampleDataEvent.SAMPLE_DATA,sineWaveGenerator);
+			mySound.play(0, 1);
+			
+			addEventListener(Event.ENTER_FRAME, onEnterFrame);
+			
+			
+		}
+		
+		private function dragModeOn(event:MouseEvent):void
+		{			
+			event.target.startDrag(false);
+			event.target.alpha = 0.5;
+			//selectedBrickIndex = brickButtons.indexOf(event.target);
+			//testButton.alpha = 0.5;
+			//event.target.
+		}
+		
+		private function dragModeOff(event:MouseEvent):void
+		{			
+			event.target.stopDrag();
+			event.target.alpha = 1.5;
+			//testButton.alpha = 1.5;
+				
+		}
+		
+		private function onEnterFrame(event:Event):void
+		{
+			/*
+				frequency =  Math.abs(testButton.x - testButton2.x) ;
+				timbre = (testButton3.x - testButton4.x) / 100;*/
+			
+		}
+		
+		
+		private function squareWaveGenerator(event:SampleDataEvent):void 
+		{
+			
+			for ( var i:int = 0; i < 8192; i++ ) 
+			{
+				var amp:Number = 0.075;
+				var sample:Number;
+		
+				sample = Math.sin((i + event.position) * 2 * Math.PI * frequency /44100) > 0 ? amp : -amp; // square
+				event.data.writeFloat(sample);
+				event.data.writeFloat(sample);
+			}
+			trace("SMOMFE");
+		}
+		
+		private function timbreWaveGenerator(event:SampleDataEvent):void 
+		{
+			
+			for ( var c:int = 0; c < 8192; c++ ) 
+			{
+				frequency =  Math.abs(testButton.x - testButton2.x) ;
+				timbre = (testButton3.x - testButton4.x) / 100;
+			
+			event.data.writeFloat(Math.sin( Number(c + event.position) * (frequency * 2 * Math.PI) / 44100) +
+			
+			Math.sin( Number(c + event.position) * (frequency * timbre) / 44100)
+			
+			* 0.125 );
+			
+			event.data.writeFloat(Math.sin( Number(c + event.position) * (frequency * 2 * Math.PI) / 44100) +
+			
+			Math.sin( Number(c + event.position) * (frequency * timbre) / 44100)
+			
+			* 0.125 );
+			
+			
+			}
+			trace("SMOMFE");
+		}
+		
+		private function sineWaveGenerator(event:SampleDataEvent):void 
+		{
+			
+			for ( var i:int = 0; i < 8192; i++ ) 
+			{
+				if (i+event.position < soundLength)
+				{
+					//frequency =  Math.abs(testButton.x - testButton2.x) ;
+					event.data.writeFloat(Math.sin( Number(i + event.position) * (frequency * 2 * Math.PI) / 44100) * 0.25 );
+					event.data.writeFloat(Math.sin( Number(i + event.position) * (frequency * 2 * Math.PI) / 44100) * 0.25 );
+				}
+				else
+				{
+					event.data.writeFloat(0);
+					event.data.writeFloat(0);
+				}
+				
+			}
+			trace("SMOMFE");
+		}
+		
+
+
+
+	}
+
+}

@@ -1,0 +1,167 @@
+package 
+{
+	import flash.display.Sprite;
+	import flash.events.Event;
+	import flash.display.*;
+	import flash.events.*;
+	import flash.geom.ColorTransform;
+	import flash.net.URLRequest;
+	import flash.net.navigateToURL;
+	import flash.system.*;
+	import flash.text.*;
+	import flash.utils.*; 
+	import flash.media.*;
+	import flash.events.Event;
+	import flash.events.EventDispatcher;
+	import flash.events.SampleDataEvent;
+	import flash.utils.ByteArray;
+
+	import soundGrid.soundButton;
+	/**
+	 * ...
+	 * @author sd
+	 */
+	[Frame(factoryClass = "Preloader")]
+	[SWF(width="800", height="600" , backgroundColor="#000033")]
+	public class Main extends Sprite 
+	{
+		
+		private var testbutton:soundButton;
+		private var buttons:Vector.<Vector.<soundButton>>; 
+		/*
+		 * // a vector of soundButton vectors. Each vector is one chord,
+			or point in time. each entry in it's soundButton vectors determines if a pitch is played.
+		 *  buttons[0][2] is the thrid sound in the first chord.
+		 * 
+		 * */
+		
+		
+		public var mySound:Sound = new Sound();
+		
+		private var frequency:Number = 340;
+		private var timbre:Number = 0.0;
+		private var soundLength:int = 11025;
+		private var position:int = 0; 
+		private var limiter:int = 0;
+
+		public function Main():void 
+		{
+			if (stage) init();
+			else addEventListener(Event.ADDED_TO_STAGE, init);
+		}
+
+		private function init(e:Event = null):void 
+		{
+			removeEventListener(Event.ADDED_TO_STAGE, init);
+			// entry point
+				buttons = new Vector.<Vector.<soundButton>>; 
+			
+			
+			
+			for (var j:int = 0; j < 16 ; j++)
+			{
+				buttons.push(new Vector.<soundButton>);
+				
+				for (var i:int = 0; i < 16 ; i++)
+				{
+					trace(j);
+					buttons[j].push(new soundButton());
+					buttons[j][i].y = (i * 37.5) + 5;
+					buttons[j][i].x  = (j * 37.5) + 5;
+					buttons[j][i].visible = true;
+					buttons[j][i].alpha = 0.5
+					this.addChild(buttons[j][i]);
+				}
+			}
+			
+			
+			mySound.addEventListener(SampleDataEvent.SAMPLE_DATA,sineWaveGenerator);
+			mySound.play(0, 1);
+			
+			addEventListener(Event.ENTER_FRAME, onEnterFrame);
+			
+			
+		}
+		
+		
+		
+		private function onEnterFrame(event:Event):void
+		{
+			/*
+				frequency =  Math.abs(testButton.x - testButton2.x) ;
+				timbre = (testButton3.x - testButton4.x) / 100;*/
+			
+			
+			for each(var buttonSpecific:soundButton in buttons[position])
+			{
+				buttonSpecific.alpha = 0.5;
+			}
+			limiter++;
+			if (limiter   > 10)
+			{
+				trace("stuff", limiter, "addagg",position)
+				position++;
+				limiter = 0;
+			}
+			if (position > 15)
+			{
+				position = 0;
+			}
+			
+			
+			for each(var buttonASpecific:soundButton in buttons[position])
+			{
+				buttonASpecific.alpha = 1.5;
+				if (buttonASpecific.returnState() == true)
+				{
+					mySound.play(0,1);
+				}
+				
+			}
+			
+		}
+		
+		
+		private function squareWaveGenerator(event:SampleDataEvent):void 
+		{
+			
+			for ( var i:int = 0; i < 8192; i++ ) 
+			{
+				var amp:Number = 0.075;
+				var sample:Number;
+		
+				sample = Math.sin((i + event.position) * 2 * Math.PI * frequency /44100) > 0 ? amp : -amp; // square
+				event.data.writeFloat(sample);
+				event.data.writeFloat(sample);
+			}
+			trace("SMOMFE");
+		}
+		
+		
+		private function sineWaveGenerator(event:SampleDataEvent):void 
+		{
+			
+			for ( var i:int = 0; i < 8192; i++ ) 
+			{
+				if (i+event.position < soundLength)
+				{
+					//frequency =  Math.abs(testButton.x - testButton2.x) ;
+					event.data.writeFloat(Math.sin( Number(i + event.position) * (frequency * 2 * Math.PI) / 44100) * 0.25 );
+					event.data.writeFloat(Math.sin( Number(i + event.position) * (frequency * 2 * Math.PI) / 44100) * 0.25 );
+				}
+				else
+				{
+					event.data.writeFloat(0);
+					event.data.writeFloat(0);
+				}
+				
+			}
+			//trace("SMOMFE");
+		}
+		
+
+
+
+	}
+
+}

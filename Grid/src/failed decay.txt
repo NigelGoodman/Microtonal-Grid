@@ -1,0 +1,1210 @@
+package 
+{
+	// the way to calculate notes is the 
+	//desired frequency = 2 ^ semitones/notes between one "octave" * the previous note(220 or 440)
+	import flash.display.Sprite;
+	import flash.events.Event;
+	import flash.display.*;
+	import flash.events.*;
+	import flash.geom.ColorTransform;
+	import flash.ui.Mouse;
+	
+	import flash.net.URLRequest;
+	import flash.net.navigateToURL;
+	import flash.system.*;
+	import flash.text.*;
+	import flash.utils.*; 
+	import flash.media.*;
+	import flash.events.*;
+	import flash.utils.ByteArray;
+	import flash.net.FileFilter;
+	import flash.net.FileReference;
+	import flash.net.URLRequest;
+	import flash.events.KeyboardEvent;
+	import flash.ui.Keyboard;
+	
+	
+	import soundGrid.*;
+	/**
+	 * ...
+	 * @author sd
+	 */
+	[Frame(factoryClass = "Preloader")]
+	[SWF(width="800", height="600",  frameRate = 50, backgroundColor="#000033")]
+	public class Main extends Sprite 
+	{
+		[Embed(source = '../lib/OutlashStudiosButton.jpg')]
+		public var mule1Bg:Class;
+		public var logo:Bitmap = new mule1Bg;
+		
+		private var buttons:Vector.<Vector.<soundButton>>; 
+		/*
+		 * // a vector of soundButton vectors. Each vector is one chord,
+			or point in time. each entry in it's soundButton vectors determines if a pitch is played.
+		 *  buttons[0][2] is the thrid sound in the first chord.
+		 * 
+		 * */
+		public var testButton:SimpleButton ;
+		public var linkButton:SimpleButton;
+		
+		public var tempoButton:scaleButton;
+		public var pitchButton:scaleButton;
+		
+		public var scaleButtons:Vector.<SimpleButton>;
+		
+		public var attenuationTimer:Timer;
+		
+		public var scaleText1:TextField;
+		public var scaleText2:TextField;
+		public var scaleText3:TextField;
+		public var scaleText4:TextField;
+		public var tempoText:TextField;
+		public var pitchText:TextField;
+		public var muteText:TextField;
+		
+		public var fontMania:TextFormat;
+		
+		public var shapely:Shape = new Shape();
+		public var shapely1:Shape = new Shape();
+		public var shapely2:Shape = new Shape();
+		public var shapely3:Shape = new Shape();
+		public var shapely4:Shape = new Shape();
+		
+		public var notes:Vector.<Sound>;
+		public var offsets:Vector.<int>;
+		public var channels:SoundChannel;
+		public var mySound:Sound = new Sound();
+		public var soundChannel1:SoundChannel;
+		private var bufferBool:Boolean;
+		
+		private var timerDivisions:int = 20;
+		private var timerLength:int = 5;
+		
+		private var frequencies:Vector.<Number>;
+		private var timbre:Number = 0.0;
+		private var soundLength:int = 11025; //default 11025
+		private var positionOfGrid:int = 0; 
+		private var limiter:int = 0;
+		private var limiterCheck:int = 100;
+		private var key:Number = 220.0; //default - 440 (a)
+		private var octave:int = 2; //(default  - 2 (western octaves)
+		private var subdivisions:int = 12; //default - 12 (western subdivisions)
+		
+		private var muteButton:scaleButton;
+		
+		private var toneOutput:XML;
+		private var xmlByteArray:ByteArray; 
+		private var xmlFileReference:FileReference;
+
+		public function Main():void 
+		{
+			if (stage) init();
+			else addEventListener(Event.ADDED_TO_STAGE, init);
+		}
+
+		private function init(e:Event = null):void 
+		{
+			
+			attenuationTimer = new Timer(timerLength, timerDivisions);
+			attenuationTimer.addEventListener(TimerEvent.TIMER, attentuationTrigger);
+			attenuationTimer.addEventListener(TimerEvent.TIMER_COMPLETE, resetDecayTimer);
+			
+			stage.quality = StageQuality.LOW;
+			
+			removeEventListener(Event.ADDED_TO_STAGE, init);
+			// entry point
+			
+			stage.addEventListener(KeyboardEvent.KEY_DOWN,onKeyPressed);
+			
+			tempoButton = new scaleButton;
+			pitchButton = new scaleButton;
+			
+			toneOutput = new XML;
+			xmlByteArray = new ByteArray; 
+			xmlFileReference new FileReference;
+			
+			shapely = new Shape();
+			
+			shapely = new Shape();
+			shapely.graphics.beginFill(0xFFFFFF);
+			shapely.graphics.drawRect(0, 0, 30, 30);
+			
+			shapely1 = new Shape();
+			shapely1.graphics.beginFill(0xFFFFFF);
+			shapely1.graphics.drawRect(0, 0, 30, 30);
+			bufferBool = false;
+			
+			shapely2 = new Shape();
+			shapely2.graphics.beginFill(0xFFFFFF);
+			shapely2.graphics.drawRect(0, 0, 30, 30);
+			
+			shapely3 = new Shape();
+			shapely3.graphics.beginFill(0xFFFFFF);
+			shapely3.graphics.drawRect(0, 0, 30, 30);
+			
+			shapely4 = new Shape();
+			shapely4.graphics.beginFill(0xFFFFFF);
+			shapely4.graphics.drawRect(0, 0, 30, 30);
+			
+			
+			
+			scaleText1 = new TextField();
+			scaleText2 = new TextField();
+			scaleText3 = new TextField();
+			scaleText4 = new TextField();
+			pitchText = new TextField();
+			tempoText = new TextField();
+			muteText = new TextField();
+			
+			fontMania = new TextFormat("Arial",16);
+			
+			scaleText1.defaultTextFormat = fontMania;
+			scaleText2.defaultTextFormat = fontMania;
+			scaleText3.defaultTextFormat = fontMania;
+			scaleText4.defaultTextFormat = fontMania;
+			tempoText.defaultTextFormat = fontMania;
+			pitchText.defaultTextFormat = fontMania;
+			muteText.defaultTextFormat = fontMania;
+			
+			scaleText1.text = "Western 12 tone scales";
+			scaleText2.text = "Bohlen–Pierce scales";
+			scaleText3.text = "Arabian 24 tone scales";
+			scaleText4.text = "Arabian 17 scales";
+			tempoText.text = "Change tempo";
+			pitchText.text = "Change Pitch";
+			muteText.text = "Mute/Unmute";
+			
+			
+			
+			scaleText1.x = 614;
+			scaleText1.y = 50;
+			
+			scaleText1.textColor = 0xFFFFFF;
+			scaleText1.autoSize = TextFieldAutoSize.LEFT;
+			
+			scaleText1.visible = true;
+			this.addChild(scaleText1);
+			
+			scaleText2.x = 614;
+			scaleText2.y = 150;
+			
+			scaleText2.textColor = 0xFFFFFF;
+			scaleText2.autoSize = TextFieldAutoSize.LEFT;
+			
+			scaleText2.visible = true;
+			this.addChild(scaleText2);
+			
+			scaleText3.x = 614;
+			scaleText3.y = 250;
+			
+			scaleText3.textColor = 0xFFFFFF;
+			scaleText3.autoSize = TextFieldAutoSize.LEFT;
+			
+			scaleText3.visible = true;
+			this.addChild(scaleText3);
+			
+			scaleText4.x = 614;
+			scaleText4.y = 350;
+			
+			scaleText4.textColor = 0xFFFFFF;
+			scaleText4.autoSize = TextFieldAutoSize.LEFT;
+			
+			scaleText4.visible = true;
+			this.addChild(scaleText4);
+			
+			tempoText.x = 614;
+			tempoText.y = 450;
+			
+			tempoText.textColor = 0xFFFFFF;
+			tempoText.autoSize = TextFieldAutoSize.LEFT;
+			
+			tempoText.visible = true;
+			this.addChild(tempoText);
+			
+			pitchText.x = 614;
+			pitchText.y = 500;
+			
+			pitchText.textColor = 0xFFFFFF;
+			pitchText.autoSize = TextFieldAutoSize.LEFT;
+			
+			pitchText.visible = true;
+			this.addChild(pitchText);
+			
+			muteText.x = 614;
+			muteText.y = 550;
+			
+			muteText.textColor = 0xFFFFFF;
+			muteText.autoSize = TextFieldAutoSize.LEFT;
+			
+			muteText.visible = true;
+			this.addChild(muteText);
+			
+			
+			
+			
+			testButton = new SimpleButton(shapely, shapely, shapely, shapely);
+			
+			scaleButtons = new Vector.<SimpleButton>;
+			for (var k1:int = 0; k1 < 16; k1++)
+			{
+				scaleButtons.push(new scaleButton);
+			}
+			
+			
+			/*scaleButton1 = new SimpleButton(shapely1, shapely1, shapely1, shapely1);
+			scaleButton2 = new SimpleButton(shapely2, shapely2, shapely2, shapely2);
+			scaleButton3 = new SimpleButton(shapely3, shapely3, shapely3, shapely3);
+			scaleButton4 = new SimpleButton(shapely4, shapely4, shapely4, shapely4);*/
+			
+			
+			testButton.x = 700;
+			testButton.y = 300;
+			testButton.visible = true;
+			testButton.transform.colorTransform = new ColorTransform(1, 0, 0, 1, 0, 0, 0, 0);
+			//this.addChild(testButton);
+			testButton.addEventListener(MouseEvent.CLICK, clickedbutton);
+			
+			tempoButton.x = 750;
+			tempoButton.y = 450;
+			tempoButton.visible = true;
+			tempoButton.transform.colorTransform = new ColorTransform(1, 1, 0, 1, 0, 0, 0, 0);
+			this.addChild(tempoButton);
+			tempoButton.addEventListener(MouseEvent.CLICK, clickedTempo);
+			
+			
+			pitchButton.x = 750;
+			pitchButton.y = 500;
+			pitchButton.visible = true;
+			pitchButton.transform.colorTransform = new ColorTransform(0, 1, 1, 1, 0, 0, 0, 0);
+			this.addChild(pitchButton);
+			pitchButton.addEventListener(MouseEvent.CLICK, clickedPitch);
+			
+			muteButton = new scaleButton();
+			muteButton.x = 750;
+			muteButton.y = 550;
+			muteButton.visible = true;
+			addChild(muteButton);
+			muteButton.addEventListener(MouseEvent.CLICK, mutePressed);
+			
+			linkButton = new SimpleButton(logo, logo, logo, logo);
+			linkButton.x = 610;
+			linkButton.y = 0;
+			linkButton.visible = true;
+			addChild(linkButton);
+			linkButton.addEventListener(MouseEvent.CLICK, siteClicked);
+			
+			scaleButtons[0].x = 614;
+			scaleButtons[0].y = 85;
+			scaleButtons[0].visible = true;
+			this.addChild(scaleButtons[0]);
+			scaleButtons[0].addEventListener(MouseEvent.CLICK, setScalePentMaj);
+			scaleButtons[0].addEventListener(MouseEvent.ROLL_OVER, mouseOverButton);
+			scaleButtons[0].addEventListener(MouseEvent.ROLL_OUT, mouseAwayButton);
+			
+			scaleButtons[1].x = scaleButtons[0].x + 48;
+			scaleButtons[1].y = 85;
+			scaleButtons[1].visible = true;
+			this.addChild(scaleButtons[1]);
+			scaleButtons[1].addEventListener(MouseEvent.CLICK, setScaleBlues);
+			scaleButtons[1].addEventListener(MouseEvent.ROLL_OVER, mouseOverButton);
+			scaleButtons[1].addEventListener(MouseEvent.ROLL_OUT, mouseAwayButton);
+			
+			scaleButtons[2].x = scaleButtons[1].x + 48;
+			scaleButtons[2].y = 85;
+			scaleButtons[2].visible = true;
+			this.addChild(scaleButtons[2]);
+			scaleButtons[2].addEventListener(MouseEvent.CLICK, setScaleDminished);
+			scaleButtons[2].addEventListener(MouseEvent.ROLL_OVER, mouseOverButton);
+			scaleButtons[2].addEventListener(MouseEvent.ROLL_OUT, mouseAwayButton);
+			
+			scaleButtons[3].x = scaleButtons[2].x + 48;
+			scaleButtons[3].y = 85;
+			scaleButtons[3].visible = true;
+			this.addChild(scaleButtons[3]);
+			scaleButtons[3].addEventListener(MouseEvent.CLICK, setScaleWholeTone);
+			scaleButtons[3].addEventListener(MouseEvent.ROLL_OVER, mouseOverButton);
+			scaleButtons[3].addEventListener(MouseEvent.ROLL_OUT, mouseAwayButton);
+			
+			scaleButtons[4].x = 614;
+			scaleButtons[4].y = 185;
+			scaleButtons[4].visible = true;
+			this.addChild(scaleButtons[4]);
+			scaleButtons[4].addEventListener(MouseEvent.CLICK, setScaleLambdaPierce);
+			scaleButtons[4].addEventListener(MouseEvent.ROLL_OVER, mouseOverButton);
+			scaleButtons[4].addEventListener(MouseEvent.ROLL_OUT, mouseAwayButton);
+			
+			scaleButtons[5].x = scaleButtons[4].x +48;
+			scaleButtons[5].y = 185;
+			scaleButtons[5].visible = true;
+			this.addChild(scaleButtons[5]);
+			scaleButtons[5].addEventListener(MouseEvent.CLICK, setScaleMoll1Pierce);
+			scaleButtons[5].addEventListener(MouseEvent.ROLL_OVER, mouseOverButton);
+			scaleButtons[5].addEventListener(MouseEvent.ROLL_OUT, mouseAwayButton);
+			
+			scaleButtons[6].x = scaleButtons[5].x +48;
+			scaleButtons[6].y = 185;
+			scaleButtons[6].visible = true;
+			this.addChild(scaleButtons[6]);
+			scaleButtons[6].addEventListener(MouseEvent.CLICK, setScaleDur2Pierce);
+			scaleButtons[6].addEventListener(MouseEvent.ROLL_OVER, mouseOverButton);
+			scaleButtons[6].addEventListener(MouseEvent.ROLL_OUT, mouseAwayButton);
+			
+			scaleButtons[7].x = scaleButtons[6].x + 48;
+			scaleButtons[7].y = 185;
+			scaleButtons[7].visible = true;
+			this.addChild(scaleButtons[7]);
+			scaleButtons[7].addEventListener(MouseEvent.CLICK, setScaleChromPierce);
+			scaleButtons[7].addEventListener(MouseEvent.ROLL_OVER, mouseOverButton);
+			scaleButtons[7].addEventListener(MouseEvent.ROLL_OUT, mouseAwayButton);
+			
+			scaleButtons[8].x = 614 ;
+			scaleButtons[8].y = 285;
+			scaleButtons[8].visible = true;
+			this.addChild(scaleButtons[8]);
+			scaleButtons[8].addEventListener(MouseEvent.CLICK, setScaleArab24Bastanikar);
+			scaleButtons[8].addEventListener(MouseEvent.ROLL_OVER, mouseOverButton);
+			scaleButtons[8].addEventListener(MouseEvent.ROLL_OUT, mouseAwayButton);
+			
+			scaleButtons[9].x = scaleButtons[8].x + 48;
+			scaleButtons[9].y = 285;
+			scaleButtons[9].visible = true;
+			this.addChild(scaleButtons[9]);
+			scaleButtons[9].addEventListener(MouseEvent.CLICK, setScaleArab24Sikah);
+			scaleButtons[9].addEventListener(MouseEvent.ROLL_OVER, mouseOverButton);
+			scaleButtons[9].addEventListener(MouseEvent.ROLL_OUT, mouseAwayButton);
+			
+			scaleButtons[10].x = scaleButtons[9].x + 48;
+			scaleButtons[10].y = 285;
+			scaleButtons[10].visible = true;
+			this.addChild(scaleButtons[10]);
+			scaleButtons[10].addEventListener(MouseEvent.CLICK, setScaleArab24RahatElArwah);
+			scaleButtons[10].addEventListener(MouseEvent.ROLL_OVER, mouseOverButton);
+			scaleButtons[10].addEventListener(MouseEvent.ROLL_OUT, mouseAwayButton);
+			
+			scaleButtons[12].x = 614;
+			scaleButtons[12].y = 385;
+			scaleButtons[12].visible = true;
+			this.addChild(scaleButtons[12]);
+			scaleButtons[12].addEventListener(MouseEvent.CLICK, setScaleArab17Chromatic);
+			scaleButtons[12].addEventListener(MouseEvent.ROLL_OVER, mouseOverButton);
+			scaleButtons[12].addEventListener(MouseEvent.ROLL_OUT, mouseAwayButton);
+			
+			buttons = new Vector.<Vector.<soundButton>>; 
+			notes = new Vector.<Sound>;
+			channels = new SoundChannel;
+			frequencies = new Vector.<Number>;
+			offsets = new Vector.<int>;
+			
+			for (var j:int = 0; j < 16 ; j++)
+			{
+				buttons.push(new Vector.<soundButton>);
+				
+				for (var i:int = 0; i < 16 ; i++)
+				{
+					
+					buttons[j].push(new soundButton());
+					buttons[j][i].y = (561- (i * 37.5) + 5);
+					buttons[j][i].x  = (j * 37.5) + 5;
+					buttons[j][i].visible = true;
+					buttons[j][i].alpha = 0.5
+					this.addChild(buttons[j][i]);
+					notes.push(new Sound());
+					
+					offsets.push(i);
+					frequencies.push(Math.pow(octave,(i)/subdivisions)*key);
+					
+				}
+			}
+			
+			pentatonicMajor();
+			
+			channels = new SoundChannel();
+			//frequencies.reverse();
+			
+			buttons[0][0].setState(true);
+			buttons[1][1].setState(true);
+			buttons[2][2].setState(true);
+			buttons[3][3].setState(true);
+			buttons[4][4].setState(true);
+			buttons[5][5].setState(true);
+			buttons[6][6].setState(true);
+			buttons[7][7].setState(true);
+			buttons[8][8].setState(true);
+			buttons[9][9].setState(true);
+			buttons[10][10].setState(true);
+			buttons[11][11].setState(true);
+			buttons[12][12].setState(true);
+			buttons[13][13].setState(true);
+			buttons[14][14].setState(true);
+			buttons[15][15].setState(true);
+			
+			//mySound.addEventListener(SampleDataEvent.SAMPLE_DATA,sineWaveGenerator);
+			//mySound.play(0, 1);
+			
+			addEventListener(Event.ENTER_FRAME, onEnterFrame);
+			
+			
+		}
+		
+		private function onEnterFrame(event:Event):void
+		{
+					
+			if (limiter   == 0) //10 is default.
+			{
+				checkCurrentChord();
+				trace("next note");
+			}
+			limiter++;
+			
+			if (limiter > limiterCheck) //tick control. defualt - 10
+			{
+				limiter = 0;
+				positionOfGrid++;
+								
+				for each(var buttonASpecific:soundButton in buttons[positionOfGrid-1])
+				{
+				buttonASpecific.alpha = 0.5;			
+				
+				}
+			}
+			if (positionOfGrid > 15)
+			{
+				positionOfGrid = 0;
+			}
+			for each(var buttonSpecific:soundButton in buttons[positionOfGrid])
+			{
+					
+						buttonSpecific.alpha = 1.0;
+					
+				
+			}
+			
+				
+		}
+		
+		private function clickedbutton(e:MouseEvent):void
+		{
+			//here
+			inputScaleDegrees();
+			
+		}
+		
+		private function attentuationTrigger(e:TimerEvent):void
+		{
+			if (channels != null)
+			{
+				trace((timerDivisions - attenuationTimer.currentCount) / timerDivisions);
+				
+				channels.soundTransform = new SoundTransform((timerDivisions - attenuationTimer.currentCount) / timerDivisions);
+			}
+		}
+		
+		private function clickedTempo(e:MouseEvent):void
+		{
+			//here
+			if (limiterCheck == 10)
+			{
+				limiterCheck = 5;
+			}
+			else
+			{
+				limiterCheck = 10;
+			}
+			
+		}
+		
+		private function clickedPitch(e:MouseEvent):void
+		{
+			
+			//here
+			if (key == 220.0)
+			{
+				key = 440.0;
+				for (var xr:int = 0; xr < 16; xr++)
+				{
+					frequencies[xr] = frequencies[xr] * 2;
+				}
+			}
+			else
+			{
+				key = 220.0;
+				for (var xx:int = 0; xx < 16; xx++)
+				{
+					frequencies[xx] = frequencies[xx] / 2;
+				}
+			}
+			
+		}
+		
+		public function mutePressed(e:MouseEvent):void
+		{	
+			var transform:SoundTransform = channels.soundTransform;
+			if (SoundMixer.soundTransform.volume == 0)
+			{
+				
+				transform.volume = 1;
+			}
+			else
+			{
+				transform.volume = 0;
+			}
+			SoundMixer.soundTransform = transform;
+		}
+		
+		public function siteClicked(e:MouseEvent):void
+		{
+			navigateToURL(new URLRequest("http://outlash.co.uk/"));
+		}
+		
+		private function mouseOverButton (e:MouseEvent):void
+		{
+			switch(scaleButtons.indexOf(e.target))
+			{
+				case 0:
+				{
+					scaleText1.text = "Pentatonic Major";
+					break;
+				}
+				case 1:
+				{
+					scaleText1.text = "Blues";
+					break;
+				}
+				case 2:
+				{
+					scaleText1.text = "Diminished";
+					break;
+				}
+				case 3:
+				{
+					scaleText1.text = "Whole Tone";
+					break;
+				}
+				case 4:
+				{
+					scaleText2.text = "Lambda Mode";
+					break;
+				}
+				case 5:
+				{
+					scaleText2.text = "Moll 1";
+					break;
+				}
+				case 6:
+				{
+					scaleText2.text = "Dur 2";
+					break;
+				}
+				case 7:
+				{
+					scaleText2.text = "Chromatic";
+					break;
+				}
+				case 8:
+				{
+					scaleText3.text = "Bastanikar";
+					break;
+				}
+				case 9:
+				{
+					scaleText3.text = "Sikah";
+					break;
+				}
+				case 10:
+				{
+					scaleText3.text = "Rahat El Arwah";
+					break;
+				}
+				case 12:
+				{
+					scaleText4.text = "Chromatic";
+					break;
+				}
+				default:
+				{
+				
+					break;
+				}
+			}
+		}
+		
+		private function mouseAwayButton (e:MouseEvent):void
+		{
+			scaleText1.text = "Western 12 tone scales";
+			scaleText2.text = "Bohlen–Pierce scales";
+			scaleText3.text = "Arabian 24 tone scales";
+			scaleText4.text = "Arabian 17 scales";
+		}
+		
+		private function setScalePentMaj(e:MouseEvent):void
+		{
+			//here
+			octave = 2;
+			subdivisions = 12;
+			
+			pentatonicMajor();
+			
+			
+		}
+		
+		private function pentatonicMajor():void
+		{
+			frequencies[0] = (Math.pow(octave, (0) / subdivisions) * key);
+			frequencies[1] = (Math.pow(octave, (2) / subdivisions) * key);
+			frequencies[2] = (Math.pow(octave, (4) / subdivisions) * key);
+			frequencies[3]= (Math.pow(octave, (7) / subdivisions) * key);
+			frequencies[4] = (Math.pow(octave, (9) / subdivisions) * key);
+			frequencies[5] = (Math.pow(octave, (12) / subdivisions) * key);
+			
+			frequencies[6] = (Math.pow(octave, (2+subdivisions) / subdivisions) * key);
+			frequencies[7] = (Math.pow(octave, (4+subdivisions) / subdivisions) * key);
+			frequencies[8] = (Math.pow(octave, (7+subdivisions) / subdivisions) * key);
+			frequencies[9] = (Math.pow(octave, (9+subdivisions) / subdivisions) * key);
+			frequencies[10] = (Math.pow(octave, (12+subdivisions) / subdivisions) * key);
+			
+			frequencies[11] = (Math.pow(octave, (2+subdivisions+subdivisions) / subdivisions) * key);
+			frequencies[12] = (Math.pow(octave, (4+subdivisions+subdivisions) / subdivisions) * key);
+			frequencies[13] = (Math.pow(octave, (7+subdivisions+subdivisions) / subdivisions) * key);
+			frequencies[14] = (Math.pow(octave, (9+subdivisions+subdivisions) / subdivisions) * key);
+			frequencies[15] = (Math.pow(octave,(12+subdivisions+subdivisions)/subdivisions)*key);
+		}
+		
+		private function setScaleBlues(e:MouseEvent):void
+		{
+			//here
+			octave = 2;
+			subdivisions = 12;
+			
+			frequencies[0] = (Math.pow(octave, (0) / subdivisions) * key);
+			frequencies[1] = (Math.pow(octave, (3) / subdivisions) * key);
+			frequencies[2] = (Math.pow(octave, (5) / subdivisions) * key);
+			frequencies[3] = (Math.pow(octave, (6) / subdivisions) * key);
+			frequencies[4] = (Math.pow(octave, (7) / subdivisions) * key);
+			frequencies[5] = (Math.pow(octave, (10) / subdivisions) * key);
+			
+			frequencies[6] = (Math.pow(octave, (12) / subdivisions) * key);
+			frequencies[7] = (Math.pow(octave, (3+subdivisions) / subdivisions) * key);
+			frequencies[8] = (Math.pow(octave, (5+subdivisions) / subdivisions) * key);
+			frequencies[9] = (Math.pow(octave, (6+subdivisions) / subdivisions) * key);
+			frequencies[10] = (Math.pow(octave, (7+subdivisions) / subdivisions) * key);
+			
+			frequencies[11] = (Math.pow(octave, (10+subdivisions) / subdivisions) * key);
+			frequencies[12] = (Math.pow(octave, (12+subdivisions) / subdivisions) * key);
+			frequencies[13] = (Math.pow(octave, (3+subdivisions+subdivisions) / subdivisions) * key);
+			frequencies[14] = (Math.pow(octave, (5+subdivisions+subdivisions) / subdivisions) * key);
+			frequencies[15] = (Math.pow(octave,(6+subdivisions+subdivisions)/subdivisions)*key);
+			
+		}
+		
+		private function setScaleDminished(e:MouseEvent):void
+		{
+			//here
+			octave = 2;
+			subdivisions = 12;
+			
+			frequencies[0] = (Math.pow(octave, (0) / subdivisions) * key);
+			frequencies[1] = (Math.pow(octave, (3) / subdivisions) * key);
+			frequencies[2] = (Math.pow(octave, (6) / subdivisions) * key);
+			frequencies[3] = (Math.pow(octave, (9) / subdivisions) * key);
+			frequencies[4] = (Math.pow(octave, (12) / subdivisions) * key);
+			frequencies[5] = (Math.pow(octave, (15) / subdivisions) * key);
+			
+			frequencies[6] = (Math.pow(octave, (18) / subdivisions) * key);
+			frequencies[7] = (Math.pow(octave, (21) / subdivisions) * key);
+			frequencies[8] = (Math.pow(octave, (24) / subdivisions) * key);
+			frequencies[9] = (Math.pow(octave, (27) / subdivisions) * key);
+			frequencies[10] = (Math.pow(octave, (30) / subdivisions) * key);
+			
+			frequencies[11] = (Math.pow(octave, (33) / subdivisions) * key);
+			frequencies[12] = (Math.pow(octave, (36) / subdivisions) * key);
+			frequencies[13] = (Math.pow(octave, (39) / subdivisions) * key);
+			frequencies[14] = (Math.pow(octave, (42) / subdivisions) * key);
+			frequencies[15] = (Math.pow(octave,(45)/subdivisions)*key);
+			
+		}
+		
+		private function setScaleWholeTone(e:MouseEvent):void
+		{
+			//here
+			octave = 2;
+			subdivisions = 12;
+			
+			frequencies[0] = (Math.pow(octave, (0) / subdivisions) * key);
+			frequencies[1] = (Math.pow(octave, (2) / subdivisions) * key);
+			frequencies[2] = (Math.pow(octave, (4) / subdivisions) * key);
+			frequencies[3] = (Math.pow(octave, (6) / subdivisions) * key);
+			frequencies[4] = (Math.pow(octave, (8) / subdivisions) * key);
+			frequencies[5] = (Math.pow(octave, (10) / subdivisions) * key);
+			
+			frequencies[6] = (Math.pow(octave, (12) / subdivisions) * key);
+			frequencies[7] = (Math.pow(octave, (14) / subdivisions) * key);
+			frequencies[8] = (Math.pow(octave, (16) / subdivisions) * key);
+			frequencies[9] = (Math.pow(octave, (18) / subdivisions) * key);
+			frequencies[10] = (Math.pow(octave, (20) / subdivisions) * key);
+			
+			frequencies[11] = (Math.pow(octave, (22) / subdivisions) * key);
+			frequencies[12] = (Math.pow(octave, (24) / subdivisions) * key);
+			frequencies[13] = (Math.pow(octave, (26) / subdivisions) * key);
+			frequencies[14] = (Math.pow(octave, (27) / subdivisions) * key);
+			frequencies[15] = (Math.pow(octave,(28)/subdivisions)*key);
+			
+		}
+		
+		private function setScaleChromPierce(e:MouseEvent):void
+		{
+			octave = 3;
+			subdivisions = 13;
+			
+			frequencies[0] = (Math.pow(octave, (0) / subdivisions) * key);
+			frequencies[1] = (Math.pow(octave, (1) / subdivisions) * key);
+			frequencies[2] = (Math.pow(octave, (2) / subdivisions) * key);
+			frequencies[3] = (Math.pow(octave, (3) / subdivisions) * key);
+			frequencies[4] = (Math.pow(octave, (4) / subdivisions) * key);
+			frequencies[5] = (Math.pow(octave, (5) / subdivisions) * key);
+			
+			frequencies[6] = (Math.pow(octave, (6) / subdivisions) * key);
+			frequencies[7] = (Math.pow(octave, (7) / subdivisions) * key);
+			frequencies[8] = (Math.pow(octave, (8) / subdivisions) * key);
+			frequencies[9] = (Math.pow(octave, (9) / subdivisions) * key);
+			frequencies[10] = (Math.pow(octave, (10) / subdivisions) * key);
+			
+			frequencies[11] = (Math.pow(octave, (11) / subdivisions) * key);
+			frequencies[12] = (Math.pow(octave, (12) / subdivisions) * key);
+			frequencies[13] = (Math.pow(octave, (13) / subdivisions) * key);
+			frequencies[14] = (Math.pow(octave, (14) / subdivisions) * key);
+			frequencies[15] = (Math.pow(octave,(15)/subdivisions)*key);
+			
+		}
+		
+		private function setScaleLambdaPierce(e:MouseEvent):void
+		{
+			octave = 3;
+			subdivisions = 13;
+			
+			frequencies[0] = (Math.pow(octave, (0) / subdivisions) * key);
+			frequencies[1] = (Math.pow(octave, (2) / subdivisions) * key);
+			frequencies[2] = (Math.pow(octave, (3) / subdivisions) * key);
+			frequencies[3] = (Math.pow(octave, (4) / subdivisions) * key);
+			frequencies[4] = (Math.pow(octave, (6) / subdivisions) * key);
+			frequencies[5] = (Math.pow(octave, (7) / subdivisions) * key);
+			
+			frequencies[6] = (Math.pow(octave, (9) / subdivisions) * key);
+			frequencies[7] = (Math.pow(octave, (10) / subdivisions) * key);
+			frequencies[8] = (Math.pow(octave, (12) / subdivisions) * key);
+			frequencies[9] = (Math.pow(octave, (13) / subdivisions) * key);
+			frequencies[10] = (Math.pow(octave, (15) / subdivisions) * key);
+			
+			frequencies[11] = (Math.pow(octave, (16) / subdivisions) * key);
+			frequencies[12] = (Math.pow(octave, (17) / subdivisions) * key);
+			frequencies[13] = (Math.pow(octave, (19) / subdivisions) * key);
+			frequencies[14] = (Math.pow(octave, (20) / subdivisions) * key);
+			frequencies[15] = (Math.pow(octave,(22)/subdivisions)*key);
+			
+		}
+		
+		private function setScaleMoll1Pierce(e:MouseEvent):void
+		{
+			octave = 3;
+			subdivisions = 13;
+			
+			frequencies[0] = (Math.pow(octave, (0) / subdivisions) * key);
+			frequencies[1] = (Math.pow(octave, (1) / subdivisions) * key);
+			frequencies[2] = (Math.pow(octave, (3) / subdivisions) * key);
+			frequencies[3] = (Math.pow(octave, (4) / subdivisions) * key);
+			frequencies[4] = (Math.pow(octave, (6) / subdivisions) * key);
+			frequencies[5] = (Math.pow(octave, (7) / subdivisions) * key);
+			
+			frequencies[6] = (Math.pow(octave, (9) / subdivisions) * key);
+			frequencies[7] = (Math.pow(octave, (10) / subdivisions) * key);
+			frequencies[8] = (Math.pow(octave, (12) / subdivisions) * key);
+			frequencies[9] = (Math.pow(octave, (13) / subdivisions) * key);
+			frequencies[10] = (Math.pow(octave,(14) / subdivisions) * key);
+			
+			frequencies[11] = (Math.pow(octave,(16) / subdivisions) * key);
+			frequencies[12] = (Math.pow(octave,(17) / subdivisions) * key);
+			frequencies[13] = (Math.pow(octave,(19) / subdivisions) * key);
+			frequencies[14] = (Math.pow(octave,(20) / subdivisions) * key);
+			frequencies[15] = (Math.pow(octave,(22) /subdivisions)*key);
+			
+		}
+		
+		private function setScaleMoll2Pierce(e:MouseEvent):void
+		{
+			octave = 3;
+			subdivisions = 13;
+			
+			frequencies[0] = (Math.pow(octave, (0) / subdivisions) * key);
+			frequencies[1] = (Math.pow(octave, (2) / subdivisions) * key);
+			frequencies[2] = (Math.pow(octave, (3) / subdivisions) * key);
+			frequencies[3] = (Math.pow(octave, (5) / subdivisions) * key);
+			frequencies[4] = (Math.pow(octave, (6) / subdivisions) * key);
+			frequencies[5] = (Math.pow(octave, (7) / subdivisions) * key);
+			
+			frequencies[6] = (Math.pow(octave, (9) / subdivisions) * key);
+			frequencies[7] = (Math.pow(octave, (10) / subdivisions) * key);
+			frequencies[8] = (Math.pow(octave, (12) / subdivisions) * key);
+			frequencies[9] = (Math.pow(octave, (13) / subdivisions) * key);
+			frequencies[10] = (Math.pow(octave,(15) / subdivisions) * key);
+			
+			frequencies[11] = (Math.pow(octave,(16) / subdivisions) * key);
+			frequencies[12] = (Math.pow(octave,(18) / subdivisions) * key);
+			frequencies[13] = (Math.pow(octave,(19) / subdivisions) * key);
+			frequencies[14] = (Math.pow(octave,(20) / subdivisions) * key);
+			frequencies[15] = (Math.pow(octave,(22) /subdivisions)*key);
+			
+		}
+		
+		private function setScaleDur2Pierce(e:MouseEvent):void
+		{
+			octave = 3;
+			subdivisions = 13;
+			
+			frequencies[0] = (Math.pow(octave, (0) / subdivisions) * key);
+			frequencies[1] = (Math.pow(octave, (2) / subdivisions) * key);
+			frequencies[2] = (Math.pow(octave, (3) / subdivisions) * key);
+			frequencies[3] = (Math.pow(octave, (4) / subdivisions) * key);
+			frequencies[4] = (Math.pow(octave, (6) / subdivisions) * key);
+			frequencies[5] = (Math.pow(octave, (7) / subdivisions) * key);
+			
+			frequencies[6] = (Math.pow(octave, (9) / subdivisions) * key);
+			frequencies[7] = (Math.pow(octave, (10) / subdivisions) * key);
+			frequencies[8] = (Math.pow(octave, (11) / subdivisions) * key);
+			frequencies[9] = (Math.pow(octave, (13) / subdivisions) * key);
+			frequencies[10] = (Math.pow(octave,(15) / subdivisions) * key);
+			
+			frequencies[11] = (Math.pow(octave,(16) / subdivisions) * key);
+			frequencies[12] = (Math.pow(octave,(17) / subdivisions) * key);
+			frequencies[13] = (Math.pow(octave,(19) / subdivisions) * key);
+			frequencies[14] = (Math.pow(octave,(20) / subdivisions) * key);
+			frequencies[15] = (Math.pow(octave,(22) /subdivisions)*key);
+			
+		}
+		
+		private function setScaleArab24Bastanikar(e:MouseEvent):void
+		{
+			octave = 2;
+			subdivisions = 24;
+			
+			frequencies[0] = (Math.pow(octave, (0) / subdivisions) * key);
+			frequencies[1] = (Math.pow(octave, (3) / subdivisions) * key);
+			frequencies[2] = (Math.pow(octave, (7) / subdivisions) * key);
+			frequencies[3] = (Math.pow(octave, (10) / subdivisions) * key);
+			frequencies[4] = (Math.pow(octave, (13) / subdivisions) * key);
+			frequencies[5] = (Math.pow(octave, (15) / subdivisions) * key);
+			
+			frequencies[6] = (Math.pow(octave, (21) / subdivisions) * key);
+			frequencies[7] = (Math.pow(octave, (23) / subdivisions) * key);
+			frequencies[8] = (Math.pow(octave, (0+subdivisions) / subdivisions) * key);
+			frequencies[9] = (Math.pow(octave, (3+subdivisions) / subdivisions) * key);
+			frequencies[10] = (Math.pow(octave,(7+subdivisions) / subdivisions) * key);
+			
+			frequencies[11] = (Math.pow(octave,(10+subdivisions) / subdivisions) * key);
+			frequencies[12] = (Math.pow(octave,(13+subdivisions) / subdivisions) * key);
+			frequencies[13] = (Math.pow(octave,(15+subdivisions) / subdivisions) * key);
+			frequencies[14] = (Math.pow(octave,(21+subdivisions) / subdivisions) * key);
+			frequencies[15] = (Math.pow(octave,(23+subdivisions) /subdivisions)*key);
+			
+		}
+		
+		private function setScaleArab24Sikah(e:MouseEvent):void
+		{
+			octave = 2;
+			subdivisions = 24;
+			
+			frequencies[0] = (Math.pow(octave, (0) / subdivisions) * key);
+			frequencies[1] = (Math.pow(octave, (3) / subdivisions) * key);
+			frequencies[2] = (Math.pow(octave, (7) / subdivisions) * key);
+			frequencies[3] = (Math.pow(octave, (11) / subdivisions) * key);
+			frequencies[4] = (Math.pow(octave, (14) / subdivisions) * key);
+			frequencies[5] = (Math.pow(octave, (17) / subdivisions) * key);
+			
+			frequencies[6] = (Math.pow(octave, (21) / subdivisions) * key);
+			frequencies[7] = (Math.pow(octave, (24) / subdivisions) * key);
+			frequencies[8] = (Math.pow(octave, (3+subdivisions) / subdivisions) * key);
+			frequencies[9] = (Math.pow(octave, (7+subdivisions) / subdivisions) * key);
+			frequencies[10] = (Math.pow(octave,(11+subdivisions) / subdivisions) * key);
+			
+			frequencies[11] = (Math.pow(octave,(14+subdivisions) / subdivisions) * key);
+			frequencies[12] = (Math.pow(octave,(17+subdivisions) / subdivisions) * key);
+			frequencies[13] = (Math.pow(octave,(21+subdivisions) / subdivisions) * key);
+			frequencies[14] = (Math.pow(octave,(24+subdivisions) / subdivisions) * key);
+			frequencies[15] = (Math.pow(octave,(27+subdivisions) /subdivisions)*key);
+			
+		}
+		
+		private function setScaleArab24RahatElArwah (e:MouseEvent):void
+		{
+			octave = 2;
+			subdivisions = 24;
+			
+			frequencies[0] = (Math.pow(octave, (0) / subdivisions) * key);
+			frequencies[1] = (Math.pow(octave, (3) / subdivisions) * key);
+			frequencies[2] = (Math.pow(octave, (7) / subdivisions) * key);
+			frequencies[3] = (Math.pow(octave, (9) / subdivisions) * key);
+			frequencies[4] = (Math.pow(octave, (15) / subdivisions) * key);
+			frequencies[5] = (Math.pow(octave, (17) / subdivisions) * key);
+			
+			frequencies[6] = (Math.pow(octave, (21) / subdivisions) * key);
+			frequencies[7] = (Math.pow(octave, (24) / subdivisions) * key);
+			frequencies[8] = (Math.pow(octave, (3+subdivisions) / subdivisions) * key);
+			frequencies[9] = (Math.pow(octave, (7+subdivisions) / subdivisions) * key);
+			frequencies[10] = (Math.pow(octave,(9+subdivisions) / subdivisions) * key);
+			
+			frequencies[11] = (Math.pow(octave,(15+subdivisions) / subdivisions) * key);
+			frequencies[12] = (Math.pow(octave,(17+subdivisions) / subdivisions) * key);
+			frequencies[13] = (Math.pow(octave,(21+subdivisions) / subdivisions) * key);
+			frequencies[14] = (Math.pow(octave,(24+subdivisions) / subdivisions) * key);
+			frequencies[15] = (Math.pow(octave,(27+subdivisions) /subdivisions)*key);
+			
+		}
+		
+		private function setScaleArab17Chromatic (e:MouseEvent):void
+		{
+			octave = 2;
+			subdivisions = 17;
+			
+			frequencies[0] = (Math.pow(octave, (0) / subdivisions) * key);
+			frequencies[1] = (Math.pow(octave, (1) / subdivisions) * key);
+			frequencies[2] = (Math.pow(octave, (2) / subdivisions) * key);
+			frequencies[3] = (Math.pow(octave, (3) / subdivisions) * key);
+			frequencies[4] = (Math.pow(octave, (4) / subdivisions) * key);
+			frequencies[5] = (Math.pow(octave, (5) / subdivisions) * key);
+			
+			frequencies[6] = (Math.pow(octave, (6) / subdivisions) * key);
+			frequencies[7] = (Math.pow(octave, (7) / subdivisions) * key);
+			frequencies[8] = (Math.pow(octave, (8) / subdivisions) * key);
+			frequencies[9] = (Math.pow(octave, (9) / subdivisions) * key);
+			frequencies[10] = (Math.pow(octave,(10) / subdivisions) * key);
+			
+			frequencies[11] = (Math.pow(octave,(11) / subdivisions) * key);
+			frequencies[12] = (Math.pow(octave,(12) / subdivisions) * key);
+			frequencies[13] = (Math.pow(octave,(13) / subdivisions) * key);
+			frequencies[14] = (Math.pow(octave,(14) / subdivisions) * key);
+			frequencies[15] = (Math.pow(octave,(15) /subdivisions)*key);
+			
+		}
+		
+		private function inputScaleDegrees():void
+		{
+			
+			xmlFileReference = new FileReference;
+			xmlFileReference.browse([new FileFilter("XML FILES ONLY", "*.xml")]);
+			xmlFileReference.addEventListener(Event.SELECT, onFileSelected);
+		}
+		
+		private function  onFileSelected(e:Event):void
+		{
+			
+			xmlFileReference.addEventListener(Event.COMPLETE,onFileLoaded);
+			xmlFileReference.load();
+		}
+		private function onFileLoaded(e:Event):void 
+		{
+			toneOutput = new XML(xmlFileReference.data);
+			trace(toneOutput.toXMLString());
+			updateToLoadedNotes();
+			//frequencies.reverse();
+		}
+		
+		private function updateToLoadedNotes():void
+		{
+			
+			for (var g:int = 0; g < 16; g++)
+			{
+				
+				
+				offsets[g] = toneOutput.note[g];
+				
+			}
+			
+			trace("offsets : ",offsets.toString());
+			
+			
+			//frequencies.reverse();
+			/*for (var h:int = 0; h < 16; h++)
+			{
+				trace("c ",frequencies[h]);
+				
+			}*/
+			offsetsToFrequencies();
+		}
+		
+		private function outputScaleDegrees():void
+		{
+			
+			toneOutput = <vase></vase>
+			
+			var scaleDegree:XML ;
+			for (var g:int = 0; g < 16; g++)
+			{
+				scaleDegree = new XML(<note>{g}</note>);
+				toneOutput.appendChild(scaleDegree);
+			}
+			
+			
+			//toneOutput.item[0]
+			
+			
+			xmlByteArray.writeUTFBytes(toneOutput.toXMLString());
+			xmlFileReference = new FileReference;
+			xmlFileReference.save(xmlByteArray, 'myToneScale.xml');
+		}
+		
+		private function offsetsToFrequencies():void
+		{
+			
+			
+			for (var g:int = 0; g > 16; g++)
+			{
+				
+				frequencies[16-g] = (Math.pow(octave,(offsets[16-g])/subdivisions)*key);
+				trace("frequencies : ", g, " ", frequencies[g]);
+			}
+			
+			trace(frequencies.toString());
+
+		}
+		
+		
+		
+		
+		
+		private function onKeyPressed(event:KeyboardEvent):void
+		{
+			
+			if (event.keyCode == Keyboard.SPACE)
+			{
+				
+					for (var j:int = 0; j < 16 ; j++)
+					{			
+						for (var i:int = 0; i < 16 ; i++)
+						{				
+							buttons[j][i].setState(false);							
+						}
+					}
+						
+				
+			}
+			if (event.keyCode == Keyboard.CONTROL)
+			{
+				buttons[0][0].setState(true);
+				buttons[1][1].setState(true);
+				buttons[2][2].setState(true);
+				buttons[3][3].setState(true);
+				buttons[4][4].setState(true);
+				buttons[5][5].setState(true);
+				buttons[6][6].setState(true);
+				buttons[7][7].setState(true);
+				buttons[8][8].setState(true);
+				buttons[9][9].setState(true);
+				buttons[10][10].setState(true);
+				buttons[11][11].setState(true);
+				buttons[12][12].setState(true);
+				buttons[13][13].setState(true);
+				buttons[14][14].setState(true);
+				buttons[15][15].setState(true);
+			}
+		}
+		
+		private function checkCurrentChord():void
+		{
+			
+			remoteSoundPlay();					
+			
+		}
+		
+		
+		private function remoteSoundPlay():void
+		{
+			
+			notes[0].addEventListener(SampleDataEvent.SAMPLE_DATA,sineWaveGenerator0);
+			
+			channels = notes[0].play();
+			attenuationTimer.start();
+			if (attenuationTimer.running == true)
+			{
+				trace("reset");
+				attenuationTimer.start();
+			}
+			else
+			{
+				trace("start");
+				attenuationTimer.reset();
+				
+			}
+				notes[0].removeEventListener(SampleDataEvent.SAMPLE_DATA, sineWaveGenerator0);
+			
+			
+						
+		}
+		
+		private function resetDecayTimer(event:TimerEvent):void
+		{
+			trace("HEEL");
+			attenuationTimer.reset();
+		}
+		
+		private function squareWaveGenerator(event:SampleDataEvent):void 
+		{
+			
+			for ( var i:int = 0; i < 8192; i++ ) 
+			{
+				var amp:Number = 0.075;
+				var sample:Number;
+		
+				sample = Math.sin((i + event.position) * 2 * Math.PI * frequencies[0] /44100) > 0 ? amp : -amp; // square
+				event.data.writeFloat(sample);
+				event.data.writeFloat(sample);
+			}
+			
+		}
+		
+		
+		private function sineWaveGenerator0(event:SampleDataEvent):void 
+		{
+			
+			for ( var i:int = 0; i < 8192; i++ ) //default 8192
+			{
+				var floatToWrite:Number = 0;
+				for (var rw:int = 0; rw < 16 ; rw++)
+				{
+					//var attenuation:Number;
+					//attenuation = (2500 - i) / 2500;
+					if (buttons[positionOfGrid][rw].returnState() == true)
+					{
+						
+							
+							floatToWrite += (Math.sin( Number(i + event.position) * (frequencies[rw] * 2 * Math.PI) / 44100)*0.25  );
+							
+					}
+				}
+				
+				
+				//channels.soundTransform = soundTransform.volume.toFixed(((2500 - i) / 2500));
+				
+				if (i+event.position < soundLength)
+				{
+					//frequencies[0] =  Math.abs(testButton.x - testButton2.x) ;
+					event.data.writeFloat(floatToWrite);
+					event.data.writeFloat(floatToWrite);
+				}
+				else
+				{
+					
+					event.data.writeFloat(0);
+					event.data.writeFloat(0);
+				}
+				
+			}			
+		}		
+		
+		
+		
+		
+		
+
+
+
+	}
+
+}

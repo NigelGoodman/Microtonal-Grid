@@ -1,0 +1,88 @@
+package 
+{
+	import flash.display.Sprite;
+	import flash.events.Event;
+	import flash.display.*;
+	import flash.events.*;
+	import flash.geom.ColorTransform;
+	import flash.net.URLRequest;
+	import flash.net.navigateToURL;
+	import flash.system.*;
+	import flash.text.*;
+	import flash.utils.*; 
+	import flash.media.*;
+	import flash.events.Event;
+	import flash.events.EventDispatcher;
+	import flash.events.SampleDataEvent;
+	import flash.utils.ByteArray;
+	
+	import soundGrid.soundButton;
+
+	/**
+	 * ...
+	 * @author sd
+	 */
+	[Frame(factoryClass = "Preloader")]
+	[SWF(width="600", height="600" , backgroundColor="#AAAA33")]
+	public class Main extends Sprite 
+	{
+		
+		private var testbutton:soundButton;
+		private var buttons:Vector.<Vector.<soundButton>>; 
+		/*
+		 * // a vector of soundButton vectors. Each vector is one chord,
+			or point in time. each entry in it's soundButton vectors determines if a pitch is played.
+		 *  buttons[0][2] is the thrid sound in the first chord.
+		 * 
+		 * */
+		public function Main():void 
+		{
+			if (stage) init();
+			else addEventListener(Event.ADDED_TO_STAGE, init);
+		}
+
+		private function init(e:Event = null):void 
+		{
+			removeEventListener(Event.ADDED_TO_STAGE, init);
+			// entry point
+			testbutton = new soundButton;
+			
+			//this.addChild(testbutton);
+			trace(testbutton.width);
+			
+			buttons = new Vector.<Vector.<soundButton>>; 
+			
+			
+			
+			for (var j:int = 0; j < 16 ; j++)
+			{
+				buttons.push(new Vector.<soundButton>);
+				
+				for (var i:int = 0; i < 16 ; i++)
+				{
+					trace(j);
+					buttons[j].push(new soundButton());
+					buttons[j][i].y = (i * 37.5) + 5;
+					buttons[j][i].x  = (j * 37.5) + 5;
+					buttons[j][i].visible = true;
+					this.addChild(buttons[j][i]);
+				}
+			}
+			
+			addEventListener(Event.ENTER_FRAME, onEnterFrame);
+			
+			
+		}
+		
+		private function onEnterFrame(event:Event):void
+		{
+			
+			
+		}
+		
+
+
+
+	}
+
+}
